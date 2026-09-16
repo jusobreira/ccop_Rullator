@@ -26,22 +26,36 @@ function Hand({ title, id, cards = [], onDoubleClickCard }) {
 function Playmat({ inverted, isPlayerOne, cards, onDoubleClickCard }) {
   const playerPrefix = isPlayerOne ? 'p1' : 'p2';
 
+  // NOVO SISTEMA DE EMPILHAMENTO (DON!! escorrega para baixo)
   const renderStackedCards = (zoneId) => {
     const zoneCards = cards.filter(c => c.zone === zoneId);
     if (zoneCards.length === 0) return null;
-    const sorted = [...zoneCards].sort((a, b) => a.type === 'DON!!' ? -1 : 1);
     
+    const mainCards = zoneCards.filter(c => c.type !== 'DON!!');
+    const dons = zoneCards.filter(c => c.type === 'DON!!');
+
     return (
-      <div className="relative w-full h-full flex justify-center mt-2">
-        {sorted.map((c, index) => {
-          const isDon = c.type === 'DON!!';
-          const offset = index * 20;
-          return (
-            <div key={c.id} className="absolute" style={{ top: isDon ? `${offset}px` : `${sorted.filter(x => x.type === 'DON!!').length * 20}px`, zIndex: isDon ? index : 10 }}>
-              <Card data={c} onDoubleClickCard={onDoubleClickCard} />
-            </div>
-          );
-        })}
+      <div className="relative w-full h-full flex justify-center">
+        {/* A carta principal fica sempre no topo exato da zona */}
+        {mainCards.map((c) => (
+          <div key={c.id} className="absolute z-20" style={{ top: '0px' }}>
+            <Card data={c} onDoubleClickCard={onDoubleClickCard} />
+          </div>
+        ))}
+        
+        {/* Os DONs descem 28px cada um, mostrando a ponta de baixo. O hover:z-30 puxa ele pra frente ao passar o mouse */}
+        {dons.map((c, index) => (
+          <div 
+            key={c.id} 
+            className="absolute transition-all hover:z-30" 
+            style={{ 
+              top: `${(index + 1) * 28}px`, 
+              zIndex: index 
+            }}
+          >
+            <Card data={c} onDoubleClickCard={onDoubleClickCard} />
+          </div>
+        ))}
       </div>
     );
   };
@@ -60,7 +74,7 @@ function Playmat({ inverted, isPlayerOne, cards, onDoubleClickCard }) {
         <DroppableZone id={`don-deck-${playerPrefix}`} className="w-full h-40 bg-neutral-400 flex items-center justify-center rounded-sm relative border-2 border-transparent hover:ring-2 ring-blue-500/50 cursor-pointer">
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).length === 0 && <span className="text-white font-black uppercase text-xl z-0">Vazio</span>}
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).map((c, index) => (
-            <div key={c.id} className="absolute" style={{ top: `${10 + (index * 1.5)}px`, left: `${12 + (index * 1.5)}px`, zIndex: index }}>
+            <div key={c.id} className="absolute hover:z-20 transition-all" style={{ top: `${10 + (index * 1.5)}px`, left: `${12 + (index * 1.5)}px`, zIndex: index }}>
                <Card data={c} onDoubleClickCard={onDoubleClickCard} />
             </div>
           ))}
@@ -127,24 +141,25 @@ export default function Board() {
   const [cards, setCards] = useState(generateInitialState);
   const [isSpawnMenuOpen, setIsSpawnMenuOpen] = useState(false);
 
-  // A MÁGICA ACONTECE AQUI:
   function handleDoubleClickCard(card) {
-    // Se for um DON e estiver dentro de algum deck de DON
-    if (card.type === 'DON!!' && card.zone.startsWith('don-deck-')) {
-      const playerSuffix = card.zone.replace('don-deck-', ''); // Descobre se é 'p1' ou 'p2'
-      
-      setCards(current => 
-        current.map(c => 
-          c.id === card.id ? { ...c, zone: `cost-area-${playerSuffix}` } : c
-        )
-      );
+    const isDon = card.type === 'DON!!';
+    const isPlayerOne = card.zone.includes('-p1');
+    const playerSuffix = isPlayerOne ? 'p1' : 'p2';
+
+    if (isDon) {
+      if (card.zone.startsWith('don-deck-')) {
+        // DON no Deck -> Cost Area (Ativo)
+        setCards(current => current.map(c => c.id === card.id ? { ...c, zone: `cost-area-${playerSuffix}`, rested: false } : c));
+      } else if (card.zone.startsWith('char-') || card.zone.startsWith('leader-')) {
+        // DON Anexado -> Volta para Cost Area (Virado/Rested)
+        setCards(current => current.map(c => c.id === card.id ? { ...c, zone: `cost-area-${playerSuffix}`, rested: true } : c));
+      } else {
+        // DON na Cost Area -> Apenas Vira
+        setCards(current => current.map(c => c.id === card.id ? { ...c, rested: !c.rested } : c));
+      }
     } else {
-      // Qualquer outra situação, apenas vira a carta
-      setCards(current => 
-        current.map(c => 
-          c.id === card.id ? { ...c, rested: !c.rested } : c
-        )
-      );
+      // Cartas normais -> Apenas Vira
+      setCards(current => current.map(c => c.id === card.id ? { ...c, rested: !c.rested } : c));
     }
   }
 
