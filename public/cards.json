@@ -1,0 +1,38 @@
+[
+  {
+    "id": "OP01-001",
+    "name": "Roronoa Zoro",
+    "type": "Leader",
+    "color": "Red",
+    "cost": null,
+    "power": 5000,
+    "attribute": "Slash",
+    "effect": "[Activate:Main] [Once Per Turn] You may give this Leader 1 rested DON!! card: All of your Character cards gain +1000 power for this turn.",
+    "trigger": null,
+    "counter": null
+  },
+  {
+    "id": "OP01-016",
+    "name": "Nami",
+    "type": "Character",
+    "color": "Red",
+    "cost": 1,
+    "power": 2000,
+    "attribute": "Special",
+    "effect": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Straw Hat Crew] type Character card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+    "trigger": null,
+    "counter": null
+  },
+  {
+    "id": "OP01-029",
+    "name": "Radical Beam!!",
+    "type": "Event",
+    "color": "Red",
+    "cost": 1,
+    "power": null,
+    "attribute": null,
+    "effect": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if you have 2 or less Life cards, that card gains an additional +2000 power.",
+    "trigger": "[Trigger] K.O. up to 1 of your opponent's Characters with 3000 power or less.",
+    "counter": null
+  }
+]
