@@ -25,7 +25,6 @@ function Hand({ title, id, cards = [], onToggleRest }) {
 function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
   const playerPrefix = isPlayerOne ? 'p1' : 'p2';
 
-  // Sistema de Empilhamento: Coloca os DON!! em formato de escada atrás da carta
   const renderStackedCards = (zoneId) => {
     const zoneCards = cards.filter(c => c.zone === zoneId);
     if (zoneCards.length === 0) return null;
@@ -36,7 +35,7 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
       <div className="relative w-full h-full flex justify-center mt-2">
         {sorted.map((c, index) => {
           const isDon = c.type === 'DON!!';
-          const offset = index * 20; // Deslocamento de 20px para cada DON!!
+          const offset = index * 20;
           return (
             <div key={c.id} className="absolute" style={{ top: isDon ? `${offset}px` : `${sorted.filter(x => x.type === 'DON!!').length * 20}px`, zIndex: isDon ? index : 10 }}>
               <Card data={c} onToggleRest={onToggleRest} />
@@ -57,12 +56,19 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
             {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-3 w-full border-2 border-neutral-400 bg-white rounded-sm"></div>)}
           </div>
         </div>
-        <div className="w-full h-40 bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl">DON!! Deck</div>
+        
+        {/* DON!! DECK: Agora é uma zona arrastável e empilha as 10 cartas */}
+        <DroppableZone id={`don-deck-${playerPrefix}`} className="w-full h-40 bg-neutral-400 flex items-center justify-center rounded-sm relative border-2 border-transparent">
+          {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).length === 0 && <span className="text-white font-black uppercase text-xl z-0">Vazio</span>}
+          {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).map((c, index) => (
+            <div key={c.id} className="absolute" style={{ top: `${10 + (index * 1.5)}px`, left: `${12 + (index * 1.5)}px`, zIndex: index }}>
+               <Card data={c} onToggleRest={onToggleRest} />
+            </div>
+          ))}
+        </DroppableZone>
       </div>
 
       <div className={`flex-1 flex gap-4 ${inverted ? 'flex-col-reverse' : 'flex-col'}`}>
-        
-        {/* CHARACTER AREA */}
         <div className="w-full h-44 bg-neutral-400 relative flex items-center justify-center text-white font-black text-3xl tracking-widest rounded-sm">
           <span className="absolute opacity-80 pointer-events-none">CHARACTER AREA</span>
           <div className={`w-full h-full flex justify-between items-center px-6 gap-4 z-10 ${inverted ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -86,37 +92,45 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           </DroppableZone>
           
           <div className="flex-1"></div>
-          <div className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm">Deck</div>
+          
+          <DroppableZone id={`deck-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">Deck</DroppableZone>
         </div>
 
-        {/* COST AREA */}
         <div className={`flex gap-4 h-40 ${inverted ? 'flex-row-reverse' : 'flex-row'}`}>
-          <DroppableZone id={`cost-area-${playerPrefix}`} className="flex-1 bg-neutral-400 flex gap-2 items-center px-4 rounded-sm overflow-x-auto border-2 border-transparent shadow-inner">
+          {/* COST AREA: Aumentei o gap (gap-6) e o padding para caberem as cartas deitadas com folga */}
+          <DroppableZone id={`cost-area-${playerPrefix}`} className="flex-1 bg-neutral-400 flex gap-6 items-center px-6 py-2 rounded-sm overflow-x-auto border-2 border-transparent shadow-inner min-w-0">
              {cards.filter(c => c.zone === `cost-area-${playerPrefix}`).length > 0 
               ? cards.filter(c => c.zone === `cost-area-${playerPrefix}`).map(c => <Card key={c.id} data={c} onToggleRest={onToggleRest} />)
               : <span className="text-white/50 font-black uppercase text-3xl tracking-widest w-full text-center pointer-events-none">Cost Area</span>}
           </DroppableZone>
-          <div className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm">Trash</div>
+          <DroppableZone id={`trash-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">Trash</DroppableZone>
         </div>
       </div>
     </div>
   );
 }
 
-export default function Board() {
-  const [cards, setCards] = useState([
+// Função auxiliar para criar o setup inicial do jogo com os 10 DONs
+const generateInitialState = () => {
+  const setup = [
     { id: 'l1', name: 'Monkey.D.Luffy', power: 5000, type: 'Leader', zone: 'leader-p1', rested: false },
     { id: 'c1', name: 'Roronoa Zoro', cost: 3, power: 5000, type: 'Character', zone: 'hand-p1', rested: false },
     { id: 'c2', name: 'Nami', cost: 1, power: 1000, type: 'Character', zone: 'hand-p1', rested: false },
-    { id: 'c3', name: 'Gum-Gum Pistol', cost: 2, type: 'Event', zone: 'hand-p1', rested: false },
-    // 4 cartas de DON!! geradas na Cost Area para você testar
-    { id: 'd1', type: 'DON!!', zone: 'cost-area-p1', rested: false },
-    { id: 'd2', type: 'DON!!', zone: 'cost-area-p1', rested: false },
-    { id: 'd3', type: 'DON!!', zone: 'cost-area-p1', rested: false },
-    { id: 'd4', type: 'DON!!', zone: 'cost-area-p1', rested: false },
-  ]);
+    { id: 'c3', name: 'Gum-Gum Pistol', cost: 2, type: 'Event', zone: 'hand-p1', rested: false }
+  ];
 
-  // Função para girar a carta
+  // Gera 10 DON!! para o Jogador 1 e 10 para o Jogador 2
+  for(let i = 1; i <= 10; i++) {
+    setup.push({ id: `don-p1-${i}`, type: 'DON!!', zone: 'don-deck-p1', rested: false });
+    setup.push({ id: `don-p2-${i}`, type: 'DON!!', zone: 'don-deck-p2', rested: false });
+  }
+  return setup;
+};
+
+export default function Board() {
+  // Inicializa o estado usando a função acima
+  const [cards, setCards] = useState(generateInitialState);
+
   function toggleRest(cardId) {
     setCards(current => 
       current.map(card => 
