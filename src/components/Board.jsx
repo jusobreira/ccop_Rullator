@@ -57,7 +57,6 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           </div>
         </div>
         
-        {/* DON!! DECK: Agora é uma zona arrastável e empilha as 10 cartas */}
         <DroppableZone id={`don-deck-${playerPrefix}`} className="w-full h-40 bg-neutral-400 flex items-center justify-center rounded-sm relative border-2 border-transparent">
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).length === 0 && <span className="text-white font-black uppercase text-xl z-0">Vazio</span>}
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).map((c, index) => (
@@ -96,11 +95,15 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           <DroppableZone id={`deck-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">Deck</DroppableZone>
         </div>
 
+        {/* COST AREA CORRIGIDA COM -space-x-10 PARA SOBREPOSIÇÃO */}
         <div className={`flex gap-4 h-40 ${inverted ? 'flex-row-reverse' : 'flex-row'}`}>
-          {/* COST AREA: Aumentei o gap (gap-6) e o padding para caberem as cartas deitadas com folga */}
-          <DroppableZone id={`cost-area-${playerPrefix}`} className="flex-1 bg-neutral-400 flex gap-6 items-center px-6 py-2 rounded-sm overflow-x-auto border-2 border-transparent shadow-inner min-w-0">
+          <DroppableZone id={`cost-area-${playerPrefix}`} className="flex-1 bg-neutral-400 flex -space-x-10 items-center px-8 py-2 rounded-sm border-2 border-transparent shadow-inner min-w-0">
              {cards.filter(c => c.zone === `cost-area-${playerPrefix}`).length > 0 
-              ? cards.filter(c => c.zone === `cost-area-${playerPrefix}`).map(c => <Card key={c.id} data={c} onToggleRest={onToggleRest} />)
+              ? cards.filter(c => c.zone === `cost-area-${playerPrefix}`).map(c => (
+                  <div key={c.id} className="relative hover:z-20 transition-all">
+                    <Card data={c} onToggleRest={onToggleRest} />
+                  </div>
+                ))
               : <span className="text-white/50 font-black uppercase text-3xl tracking-widest w-full text-center pointer-events-none">Cost Area</span>}
           </DroppableZone>
           <DroppableZone id={`trash-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">Trash</DroppableZone>
@@ -110,7 +113,6 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
   );
 }
 
-// Função auxiliar para criar o setup inicial do jogo com os 10 DONs
 const generateInitialState = () => {
   const setup = [
     { id: 'l1', name: 'Monkey.D.Luffy', power: 5000, type: 'Leader', zone: 'leader-p1', rested: false },
@@ -119,7 +121,6 @@ const generateInitialState = () => {
     { id: 'c3', name: 'Gum-Gum Pistol', cost: 2, type: 'Event', zone: 'hand-p1', rested: false }
   ];
 
-  // Gera 10 DON!! para o Jogador 1 e 10 para o Jogador 2
   for(let i = 1; i <= 10; i++) {
     setup.push({ id: `don-p1-${i}`, type: 'DON!!', zone: 'don-deck-p1', rested: false });
     setup.push({ id: `don-p2-${i}`, type: 'DON!!', zone: 'don-deck-p2', rested: false });
@@ -128,7 +129,6 @@ const generateInitialState = () => {
 };
 
 export default function Board() {
-  // Inicializa o estado usando a função acima
   const [cards, setCards] = useState(generateInitialState);
 
   function toggleRest(cardId) {
