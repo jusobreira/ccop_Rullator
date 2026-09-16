@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DndContext, useDroppable } from '@dnd-kit/core';
 import Card from './Card';
+import SpawnMenu from './SpawnMenu'; // <-- Importamos o menu aqui!
 
 function DroppableZone({ id, className, children }) {
   const { isOver, setNodeRef } = useDroppable({ id });
@@ -28,7 +29,6 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
   const renderStackedCards = (zoneId) => {
     const zoneCards = cards.filter(c => c.zone === zoneId);
     if (zoneCards.length === 0) return null;
-
     const sorted = [...zoneCards].sort((a, b) => a.type === 'DON!!' ? -1 : 1);
     
     return (
@@ -95,7 +95,6 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           <DroppableZone id={`deck-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">Deck</DroppableZone>
         </div>
 
-        {/* COST AREA CORRIGIDA COM -space-x-10 PARA SOBREPOSIÇÃO */}
         <div className={`flex gap-4 h-40 ${inverted ? 'flex-row-reverse' : 'flex-row'}`}>
           <DroppableZone id={`cost-area-${playerPrefix}`} className="flex-1 bg-neutral-400 flex -space-x-10 items-center px-8 py-2 rounded-sm border-2 border-transparent shadow-inner min-w-0">
              {cards.filter(c => c.zone === `cost-area-${playerPrefix}`).length > 0 
@@ -115,12 +114,8 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
 
 const generateInitialState = () => {
   const setup = [
-    { id: 'l1', name: 'Monkey.D.Luffy', power: 5000, type: 'Leader', zone: 'leader-p1', rested: false },
-    { id: 'c1', name: 'Roronoa Zoro', cost: 3, power: 5000, type: 'Character', zone: 'hand-p1', rested: false },
-    { id: 'c2', name: 'Nami', cost: 1, power: 1000, type: 'Character', zone: 'hand-p1', rested: false },
-    { id: 'c3', name: 'Gum-Gum Pistol', cost: 2, type: 'Event', zone: 'hand-p1', rested: false }
+    { id: 'l1', name: 'Monkey.D.Luffy', power: 5000, type: 'Leader', zone: 'leader-p1', rested: false }
   ];
-
   for(let i = 1; i <= 10; i++) {
     setup.push({ id: `don-p1-${i}`, type: 'DON!!', zone: 'don-deck-p1', rested: false });
     setup.push({ id: `don-p2-${i}`, type: 'DON!!', zone: 'don-deck-p2', rested: false });
@@ -130,29 +125,28 @@ const generateInitialState = () => {
 
 export default function Board() {
   const [cards, setCards] = useState(generateInitialState);
+  
+  // Estado para controlar se o menu está aberto ou fechado
+  const [isSpawnMenuOpen, setIsSpawnMenuOpen] = useState(false);
 
   function toggleRest(cardId) {
-    setCards(current => 
-      current.map(card => 
-        card.id === cardId ? { ...card, rested: !card.rested } : card
-      )
-    );
+    setCards(current => current.map(card => card.id === cardId ? { ...card, rested: !card.rested } : card));
   }
 
   function handleDragEnd(event) {
     const { active, over } = event;
     if (!over) return;
+    setCards((currentCards) => currentCards.map((card) => card.id === active.id ? { ...card, zone: over.id } : card));
+  }
 
-    setCards((currentCards) => 
-      currentCards.map((card) => 
-        card.id === active.id ? { ...card, zone: over.id } : card
-      )
-    );
+  // Nova função para adicionar a carta criada no menu ao estado do jogo
+  function addCard(newCard) {
+    setCards(current => [...current, newCard]);
   }
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="min-h-screen bg-neutral-900 flex flex-col items-center overflow-auto py-12 gap-8">
+      <div className="min-h-screen bg-neutral-900 flex flex-col items-center overflow-auto py-12 gap-8 relative">
         
         <div className="flex flex-col gap-4">
           <Hand id="hand-p2" title="Mão do Jogador 2 (Oponente)" cards={cards.filter(c => c.zone === 'hand-p2')} onToggleRest={toggleRest} />
@@ -167,6 +161,19 @@ export default function Board() {
           <Playmat inverted={false} isPlayerOne={true} cards={cards} onToggleRest={toggleRest} />
           <Hand id="hand-p1" title="Mão do Jogador 1 (Você)" cards={cards.filter(c => c.zone === 'hand-p1')} onToggleRest={toggleRest} />
         </div>
+
+        {/* Botão flutuante para abrir o menu */}
+        <button 
+          onClick={() => setIsSpawnMenuOpen(true)}
+          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-full shadow-2xl font-black uppercase tracking-wider z-40 transition-transform hover:scale-105"
+        >
+          + Nova Carta
+        </button>
+
+        {/* O Menu flutuante que criamos */}
+        {isSpawnMenuOpen && (
+          <SpawnMenu onAddCard={addCard} onClose={() => setIsSpawnMenuOpen(false)} />
+        )}
 
       </div>
     </DndContext>
