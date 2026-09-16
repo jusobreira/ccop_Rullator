@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DndContext, useDroppable } from '@dnd-kit/core';
 import Card from './Card';
-import SpawnMenu from './SpawnMenu'; // <-- Importamos o menu aqui!
+import SpawnMenu from './SpawnMenu';
 
 function DroppableZone({ id, className, children }) {
   const { isOver, setNodeRef } = useDroppable({ id });
@@ -12,18 +12,18 @@ function DroppableZone({ id, className, children }) {
   );
 }
 
-function Hand({ title, id, cards = [], onToggleRest }) {
+function Hand({ title, id, cards = [], onDoubleClickCard }) {
   return (
     <div className="w-[1200px] h-40 bg-neutral-800 border-2 border-neutral-700 rounded-lg p-4 flex flex-col shadow-inner shrink-0">
       <span className="text-neutral-400 font-bold uppercase tracking-wider text-sm mb-2">{title}</span>
       <DroppableZone id={id} className="flex-1 flex gap-2 items-center justify-center border-2 border-dashed border-neutral-600/50 rounded bg-neutral-900/30 p-2 overflow-x-auto min-h-[140px]">
-        {cards.map(card => <Card key={card.id} data={card} onToggleRest={onToggleRest} />)}
+        {cards.map(card => <Card key={card.id} data={card} onDoubleClickCard={onDoubleClickCard} />)}
       </DroppableZone>
     </div>
   );
 }
 
-function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
+function Playmat({ inverted, isPlayerOne, cards, onDoubleClickCard }) {
   const playerPrefix = isPlayerOne ? 'p1' : 'p2';
 
   const renderStackedCards = (zoneId) => {
@@ -38,7 +38,7 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           const offset = index * 20;
           return (
             <div key={c.id} className="absolute" style={{ top: isDon ? `${offset}px` : `${sorted.filter(x => x.type === 'DON!!').length * 20}px`, zIndex: isDon ? index : 10 }}>
-              <Card data={c} onToggleRest={onToggleRest} />
+              <Card data={c} onDoubleClickCard={onDoubleClickCard} />
             </div>
           );
         })}
@@ -57,11 +57,11 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           </div>
         </div>
         
-        <DroppableZone id={`don-deck-${playerPrefix}`} className="w-full h-40 bg-neutral-400 flex items-center justify-center rounded-sm relative border-2 border-transparent">
+        <DroppableZone id={`don-deck-${playerPrefix}`} className="w-full h-40 bg-neutral-400 flex items-center justify-center rounded-sm relative border-2 border-transparent hover:ring-2 ring-blue-500/50 cursor-pointer">
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).length === 0 && <span className="text-white font-black uppercase text-xl z-0">Vazio</span>}
           {cards.filter(c => c.zone === `don-deck-${playerPrefix}`).map((c, index) => (
             <div key={c.id} className="absolute" style={{ top: `${10 + (index * 1.5)}px`, left: `${12 + (index * 1.5)}px`, zIndex: index }}>
-               <Card data={c} onToggleRest={onToggleRest} />
+               <Card data={c} onDoubleClickCard={onDoubleClickCard} />
             </div>
           ))}
         </DroppableZone>
@@ -87,7 +87,7 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
           </DroppableZone>
 
           <DroppableZone id={`stage-${playerPrefix}`} className="w-28 h-full bg-neutral-400 flex items-center justify-center text-white font-black uppercase text-xl rounded-sm border-2 border-transparent">
-             {cards.filter(c => c.zone === `stage-${playerPrefix}`).map(c => <Card key={c.id} data={c} onToggleRest={onToggleRest} />) || "Stage"}
+             {cards.filter(c => c.zone === `stage-${playerPrefix}`).map(c => <Card key={c.id} data={c} onDoubleClickCard={onDoubleClickCard} />) || "Stage"}
           </DroppableZone>
           
           <div className="flex-1"></div>
@@ -100,7 +100,7 @@ function Playmat({ inverted, isPlayerOne, cards, onToggleRest }) {
              {cards.filter(c => c.zone === `cost-area-${playerPrefix}`).length > 0 
               ? cards.filter(c => c.zone === `cost-area-${playerPrefix}`).map(c => (
                   <div key={c.id} className="relative hover:z-20 transition-all">
-                    <Card data={c} onToggleRest={onToggleRest} />
+                    <Card data={c} onDoubleClickCard={onDoubleClickCard} />
                   </div>
                 ))
               : <span className="text-white/50 font-black uppercase text-3xl tracking-widest w-full text-center pointer-events-none">Cost Area</span>}
@@ -125,12 +125,27 @@ const generateInitialState = () => {
 
 export default function Board() {
   const [cards, setCards] = useState(generateInitialState);
-  
-  // Estado para controlar se o menu está aberto ou fechado
   const [isSpawnMenuOpen, setIsSpawnMenuOpen] = useState(false);
 
-  function toggleRest(cardId) {
-    setCards(current => current.map(card => card.id === cardId ? { ...card, rested: !card.rested } : card));
+  // A MÁGICA ACONTECE AQUI:
+  function handleDoubleClickCard(card) {
+    // Se for um DON e estiver dentro de algum deck de DON
+    if (card.type === 'DON!!' && card.zone.startsWith('don-deck-')) {
+      const playerSuffix = card.zone.replace('don-deck-', ''); // Descobre se é 'p1' ou 'p2'
+      
+      setCards(current => 
+        current.map(c => 
+          c.id === card.id ? { ...c, zone: `cost-area-${playerSuffix}` } : c
+        )
+      );
+    } else {
+      // Qualquer outra situação, apenas vira a carta
+      setCards(current => 
+        current.map(c => 
+          c.id === card.id ? { ...c, rested: !c.rested } : c
+        )
+      );
+    }
   }
 
   function handleDragEnd(event) {
@@ -139,7 +154,6 @@ export default function Board() {
     setCards((currentCards) => currentCards.map((card) => card.id === active.id ? { ...card, zone: over.id } : card));
   }
 
-  // Nova função para adicionar a carta criada no menu ao estado do jogo
   function addCard(newCard) {
     setCards(current => [...current, newCard]);
   }
@@ -149,8 +163,8 @@ export default function Board() {
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center overflow-auto py-12 gap-8 relative">
         
         <div className="flex flex-col gap-4">
-          <Hand id="hand-p2" title="Mão do Jogador 2 (Oponente)" cards={cards.filter(c => c.zone === 'hand-p2')} onToggleRest={toggleRest} />
-          <Playmat inverted={true} isPlayerOne={false} cards={cards} onToggleRest={toggleRest} />
+          <Hand id="hand-p2" title="Mão do Jogador 2 (Oponente)" cards={cards.filter(c => c.zone === 'hand-p2')} onDoubleClickCard={handleDoubleClickCard} />
+          <Playmat inverted={true} isPlayerOne={false} cards={cards} onDoubleClickCard={handleDoubleClickCard} />
         </div>
 
         <div className="w-[1200px] h-2 bg-neutral-800 rounded-full my-4 flex items-center justify-center">
@@ -158,11 +172,10 @@ export default function Board() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <Playmat inverted={false} isPlayerOne={true} cards={cards} onToggleRest={toggleRest} />
-          <Hand id="hand-p1" title="Mão do Jogador 1 (Você)" cards={cards.filter(c => c.zone === 'hand-p1')} onToggleRest={toggleRest} />
+          <Playmat inverted={false} isPlayerOne={true} cards={cards} onDoubleClickCard={handleDoubleClickCard} />
+          <Hand id="hand-p1" title="Mão do Jogador 1 (Você)" cards={cards.filter(c => c.zone === 'hand-p1')} onDoubleClickCard={handleDoubleClickCard} />
         </div>
 
-        {/* Botão flutuante para abrir o menu */}
         <button 
           onClick={() => setIsSpawnMenuOpen(true)}
           className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-full shadow-2xl font-black uppercase tracking-wider z-40 transition-transform hover:scale-105"
@@ -170,7 +183,6 @@ export default function Board() {
           + Nova Carta
         </button>
 
-        {/* O Menu flutuante que criamos */}
         {isSpawnMenuOpen && (
           <SpawnMenu onAddCard={addCard} onClose={() => setIsSpawnMenuOpen(false)} />
         )}
