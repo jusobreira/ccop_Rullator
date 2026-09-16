@@ -1,4 +1,4 @@
-# 🏴‍☠️ [Nome do Seu Projeto] (ex: RulePose)
+# 🏴‍☠️ [Rullator] 
 
 Um simulador de campo e sandbox focado em auxiliar juízes e jogadores de **One Piece TCG** a recriarem cenários complexos, testarem interações de cartas e resolverem situações hipotéticas de regras.
 
